@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADVAZTR's Loot Sell Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body { 
+            background: #121212; 
+            color: #e0e0e0; 
+            font-family: sans-serif; 
+        }
+        
+        /* Широкая верхняя панель во весь экран */
+        .header-bar {
+            width: 100%;
+            background: #1e1e1e;
+            border-bottom: 2px solid #333333;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            gap: 15px;
+        }
+        .tool-title {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+        .promo-text {
+            color: #aaaaaa;
+            text-align: right;
+        }
+        .promo-text a {
+            color: #ffff33;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .promo-text a:hover {
+            text-decoration: underline;
+        }
+        .discount-tag {
+            color: #ff5555;
+            font-weight: bold;
+        }
+
+        /* Переключатель языков */
+        .lang-switch {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .lang-btn {
+            background: #252525;
+            color: #aaaaaa;
+            border: 1px solid #333333;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+        }
+        .lang-btn:hover {
+            background: #303030;
+        }
+        .lang-btn.active {
+            background: #00ff00;
+            color: #121212;
+            border-color: #00ff00;
+        }
+
+        @media (max-width: 600px) {
+            .header-bar {
+                flex-direction: column;
+                text-align: center;
+                gap: 8px;
+                padding: 12px;
+            }
+            .promo-text {
+                text-align: center;
+            }
+        }
+
+        /* Контейнер калькулятора */
+        .container { 
+            max-width: 400px; 
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .field { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+            color: #aaaaaa;
+        }
+        select { 
+            width: 100%; 
+            padding: 8px; 
+            font-size: 14px; 
+            background: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333333;
+        }
+        select:disabled {
+            background: #151515;
+            color: #555555;
+            border-color: #222222;
+        }
+        .result { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 1px solid #444444; 
+            background: #1e1e1e;
+            display: none; 
+        }
+        #buyIndexText {
+            color: #00ff00;
+        }
+        
+        /* Стили для выдвижных инструкций */
+        .collapsible-btn {
+            background: #252525;
+            color: #e0e0e0;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #333333;
+            text-align: left;
+            outline: none;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 15px; /* Уменьшил отступ для компактности */
+        }
+        .collapsible-btn:hover {
+            background: #303030;
+        }
+        .instruction-content {
+            padding: 0 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: #1a1a1a;
+            border-left: 1px solid #333333;
+            border-right: 1px solid #333333;
+        }
+        .instruction-content ol {
+            padding-left: 20px;
+            font-size: 13px;
+            color: #b0b0b0;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        .instruction-content li {
+            margin-bottom: 8px;
+        }
+        .instruction-content li:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Полноширинная шапка -->
+    <div class="header-bar">
+        <span class="tool-title">ADVAZTR's Loot Sell Tool</span>
+        <div class="lang-switch">
+            <button type="button" class="lang-btn active" id="langEN" onclick="setLanguage('en')">EN(English)</button>
+            <button type="button" class="lang-btn" id="langCN" onclick="setLanguage('cn')">CN( 中文)</button>
+        </div>
+        <span class="promo-text">
+            <span data-i18n="promo">Looking for ships? Get up to channel:</span> <a href="#">"ADVAZ-LOOT"</a>
+        </span>
+    </div>
+
+    <div class="container">
+        <div class="field">
+            <label data-i18n="labelRegion">Region:</label>
+            <select id="regionSelect" onchange="updateConstellations()">
+                <option value="" disabled selected data-i18n="selectRegion">- Select Region -</option>
+                <option value="Insmother">Insmother</option>
+                <option value="immensea">Immensea</option>
+                <option value="detorid">Detorid (In work)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label data-i18n="labelConstellation">Constellation:</label>
+            <select id="constellationSelect" onchange="displayBuyIndex()" disabled>
+                <option value="" disabled selected data-i18n="selectConstellation">- Select Region First -</option>
+            </select>
+        </div>
+
+        <div id="resultBox" class="result">
+            <strong><span data-i18n="buyIndex">Buy Index</span>: <span id="buyIndexText">00%</span></strong> Jita Buy<br>
+            <strong><span data-i18n="hub">Hub</span>: <span id="hubText"></span></strong><br>
+            <strong><span data-i18n="station">Station</span>: <span id="stationText"></span></strong>
+        </div>
+
+        <!-- Кнопка 1: Как узнать цену -->
+        <button type="button" class="collapsible-btn" id="priceBtn" onclick="toggleInstruction('priceBlock', this, 'price')">▼ <span data-i18n="btnPrice">Instruction (How to get price)</span></button>
+        <div id="priceBlock" class="instruction-content">
+            <ol id="priceList">
+                <li>Choose constellation where you are and haul loot to hub</li>
+                <li>Select all items you want to sell and press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>.</li>
+                <li>Go to <a href="https://appraise.gnf.lt/" target="_blank" style="color: #00ff00;">Goonprisal (clickable)</a>.</li>
+                <li>Paste your items and choose Jita and look for Buy Price column (not split)</li>
+                <li>Look for the <strong>Jita Buy</strong> total value — it is your basic price</li>
+            </ol>
+        </div>
+
+        <!-- Кнопка 2: Как продать -->
+        <button type="button" class="collapsible-btn" id="sellBtn" onclick="toggleInstruction('sellBlock', this, 'sell')">▼ <span data-i18n="btnSell">Instruction (How to sell)</span></button>
+        <div id="sellBlock" class="instruction-content">
+            <ol id="sellList">
+                <li>Take your <strong>Jita Buy</strong> total value from instruction one</li>
+                <li>Multiply it by the <strong>Buy Index</strong> percentage (choose where you are selling loot) (e.g., Jita Price * 0.77).</li>
+                <li>Move all your items to the stantion named here</li>
+                <li>Create an Item Exchange contract to: <strong>ADVAZTR</strong>.</li>
+                <li>Set "I will receive" to your calculated amount. Max price by one contract: 990M isks (if you have more, split it) <strong>hint: no scamming lol, Im checking orders</strong></li>
+            </ol>
+        </div>
+    </div>
+
+<script>
+const buybackData = {
+    "Insmother": {
+        "0-YMZM": { index: "78%", hub: "Q-3HS5*", station: "Q-3HS5 - Not a KEEPTAR" },
+        "0EA3-8": { index: "78%", hub: "4CJ-AC*", station: "4CJ-AC - Bovril's Beefstar" },
+        "0YMH-Q": { index: "78%", hub: "YPW-M4", station: "YPW-M4 - Sleepy Fort" },
+        "8-4EMQ": { index: "78%", hub: "2JT-3Q", station: "2JT-3Q - Krematorium" },
+        "E-95ID": { index: "78%", hub: "V-QXXK", station: "V-QXXK - Morannon" },
+        "FD-7Y4": { index: "76%", hub: "FD-7Y4", station: "74L2-U - More than 6 Inches" },
+        "IV-LWJ": { index: "78%", hub: "EKPB-3", station: "EKPB-3 - Enchanted Kuddle Puddle Base-3" },
+        "N-LY4R": { index: "77%", hub: "X0-6LH", station: "X0-6LH - 0ne True dictatorship" },
+        "N5V-Y0": { index: "78%", hub: "N5V-Y0", station: "ZO-4AR - Lil'Pleb" },
+        "QA-P7J (C-J6MT)": { index: "80%", hub: "C-J6MT", station: "C-J6MT - 1st Taj Mahgoon" },
+        "R-CL2W": { index: "76%", hub: "R-CL2W", station: "GB-6X5 - Anime Factory" },
+        "TL-FDN": { index: "78%", hub: "O-9G5Y", station: "O-9G5Y - Terribly Sorry Youre Tresspassin" },
+        "U-EUG7": { index: "78%", hub: "WF4C-8", station: "WF4C-8 - Bunnings Blacksite" },
+        "UR-HG4": { index: "78%", hub: "RERZ-L", station: "RERZ-L - OneTrickSenpai SPAIII STATION" },
+        "V2S-RH": { index: "76%", hub: "ROJ-B0", station: "ROJ-B0 - CJIa6oyMue & OTBara" },
+        "Z-ONUI": { index: "78%", hub: "QYD-WK", station: "QYD-WK - EVE-RO Chains of Light" }
+    },
+    "immensea": {
+        "IJE6-J (Goonswarm)": { index: "75%", hub: "KCDX-7", station: "KCDX-7 - Kun-Lun" },
+        "MY-QQI (Out Of Blue)": { index: "75%", hub: "Z8-81T", station: "Z8-81T - sold " },
+        "C73-U5 (Out Of Blue)": { index: "72%", hub: "I-NGI8", station: "I-NGI8 - Rake Me Up Inside" }
+    },
+    "detorid": {
+        "1RG-GU": { index: "77%", hub: "1-PGSG", station: "1-PGSG - Dead Mountaineer's Hotel" },
+        "3R-BJL": { index: "77%", hub: "77S8-E", station: "77S8-E - Zhong Nan Hai" },
+        "4SRW-B": { index: "78%", hub: "IAS-I5", station: "IAS-I5 - Red East" },
+        "5F8-PZ": { index: "78%", hub: "9-OUGJ", station: "9-OUGJ - GSOL Fixed Dil's Mistake" },
+        "5P4-QA": { index: "78%", hub: "5OJ-G2", station: "5OJ-G2 - Barad-dur" },
+        "D-95MV": { index: "77%", hub: "DX-TAR", station: "DX-TAR - Legion Safe Station" },
+        "GJH-1C": { index: "77%", hub: "OEG-K9", station: "OEG-K9 - Ikki's Chill pad" },
+        "HOV-VI": { index: "75%", hub: "KE-0FB", station: "KE-0FB - Empok Nor" },
+        "MZ-PA2": { index: "78%", hub: "C5-SUU", station: "C5-SUU - The Specter's Nether Lantern" },
+        "NZU8-G": { index: "76%", hub: "U69-YC", station: "U69-YC - U3 TTOD PoPKu HaTEKJlo" },
+        "PR-ACX": { index: "77%", hub: "G3D-ZT", station: "G3D-ZT - GURAM TROGAL MOY KUGELSAK" },
+        "RFQ-8Y": { index: "76%", hub: "Use GB-6X5 bruh", station: "GB-6X5 - Anime Factory" },
+        "T875-C": { index: "76%", hub: "E-ACV6", station: "E-ACV6 - Miza isnt as evil as he looks" },
+        "ZPI-2E": { index: "77%", hub: "77S8-E", station: "77S8-E - Rock Ishikela Cabin" }
+    }
+};
+
+/* ---------- ЛОКАЛИЗАЦИЯ ---------- */
+const translations = {
+    en: {
+        promo: "Game Channel:",
+        labelRegion: "Region:",
+        selectRegion: "- Select Region -",
+        labelConstellation: "Constellation:",
+        selectConstellation: "- Select Region First -",
+        selectConstellationFilled: "- Select Constellation -",
+        buyIndex: "Buy Index",
+        hub: "Hub",
+        station: "Station",
+        btnPrice: "Instruction (How to get price)",
+        btnSell: "Instruction (How to sell)",
+        hide: "Instruction (Hide)",
+        priceList: [
+            'Choose constellation where you are and haul loot to hub',
+            'Select all items you want to sell and press <strong>Ctrl+A</strong> then <strong>Ctrl+C</strong>.',
+            'Go to <a href="https://appraise.gnf.lt/" target="_blank" style="color: #00ff00;">Goonprisal (clickable)</a>.',
+            'Paste your items and choose Jita and look for Buy Price column (not split)',
+            'Look for the <strong>Jita Buy</strong> total value — it is your basic price'
+        ],
+        sellList: [
+            'Take your <strong>Jita Buy</strong> total value from instruction one',
+            'Multiply it by the <strong>Buy Index</strong> percentage (choose where you are selling loot) (e.g., Jita Price * 0.77).',
+            'Move all your items to the stantion named here',
+            'Create an Item Exchange contract to: <strong>ADVAZTR</strong>.',
+            'Set "I will receive" to your calculated amount. Max price by one contract: 990M isks (if you have more, split it) <strong>hint: no scamming Im checking orders</strong>'
+        ]
+    },
+    cn: {
+        promo: "游戏内频道:",
+        labelRegion: "星域：",
+        selectRegion: "- 请选择星域 -",
+        labelConstellation: "星座:",
+        selectConstellation: "- 请先选择星域 -",
+        selectConstellationFilled: "- 请选择星座  -",
+        buyIndex: "收购指数",
+        hub: "贸易中心",
+        station: "空间站",
+        btnPrice: "指南（如何估价)",
+        btnSell: "指南（如何出售",
+        hide: "隐藏指南",
+        priceList: [
+            '选择您所在的星座，并将战利品运送至贸易中心',
+            '选择所有您想要出售的物品，并按下 CTRL + A，然后按下 CTRL + C',
+            '前往 <a href="https://appraise.gnf.lt/" target="_blank" style="color: #00ff00;">Goonprisal (clickable)</a>.',
+            '粘贴您的物品列表，选择吉他 (Jita)，并查看“买价” (Buy Price) 列（无需拆分）.',
+            '查看“吉他买价总额” (Jita Buy Total) —— 这就是您的基础价格'
+        ],
+        sellList: [
+            '获取上述步骤中计算出的“吉他买价总额.',
+            '将该总额乘以相应的“收购指数”百分比（取决于您出售战利品的位置）（例如：吉他价格 * 0.77)',
+            '将您的所有物品运送至此处指定的空间站',
+            '向以下角色创建“物品交换”合同：<strong>YOUR_CHAR_NAME</strong>.',
+            '将“我将收到”设置为您计算出的金额。单个合同最高金额为：9.9亿 ISK（如果总额超过此限制，请拆分合同）。提示：请勿尝试欺诈，所有订单均会经过人工审核。'
+        ]
+    }
+};
+
+let currentLang = 'en';
+
+function setLanguage(lang) {
+    currentLang = lang;
+
+    document.getElementById('langEN').classList.toggle('active', lang === 'en');
+    document.getElementById('langCN').classList.toggle('active', lang === 'cn');
+
+    const t = translations[lang];
+
+    // Перевод статических элементов по data-i18n
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined) el.innerHTML = t[key];
+    });
+
+    // Плейсхолдеры селектов
+    const constSelect = document.getElementById('constellationSelect');
+    const placeholderOpt = constSelect.querySelector('option[value=""]');
+    if (placeholderOpt) {
+        placeholderOpt.innerHTML = constSelect.disabled
+            ? t.selectConstellation
+            : t.selectConstellationFilled;
+    }
+
+    // Списки инструкций
+    const priceList = document.getElementById('priceList');
+    priceList.innerHTML = t.priceList.map(li => '<li>' + li + '</li>').join('');
+    const sellList = document.getElementById('sellList');
+    sellList.innerHTML = t.sellList.map(li => '<li>' + li + '</li>').join('');
+
+    // Обновляем текст кнопок (закрытые)
+    updateBtnLabel('priceBtn', 'price');
+    updateBtnLabel('sellBtn', 'sell');
+
+    // Пересчёт высоты открытых панелей
+    ['priceBlock', 'sellBlock'].forEach(id => {
+        const panel = document.getElementById(id);
+        if (panel.style.maxHeight && panel.style.maxHeight !== "0px") {
+            panel.style.maxHeight = panel.scrollHeight + "px";
+        }
+    });
+}
+
+function updateBtnLabel(btnId, key) {
+    const btn = document.getElementById(btnId);
+    const t = translations[currentLang];
+    const span = btn.querySelector('[data-i18n]');
+    // если панель закрыта — показываем название инструкции, иначе "Hide"
+    const panelId = key === 'price' ? 'priceBlock' : 'sellBlock';
+    const panel = document.getElementById(panelId);
+    const isOpen = panel.style.maxHeight && panel.style.maxHeight !== "0px";
+    if (span) {
+        span.innerHTML = isOpen ? t.hide : t[key === 'price' ? 'btnPrice' : 'btnSell'];
+    }
+}
+
+function updateConstellations() {
+    const regionSelect = document.getElementById('regionSelect');
+    const constSelect = document.getElementById('constellationSelect');
+    const resultBox = document.getElementById('resultBox');
+    const selectedRegion = regionSelect.value;
+    const t = translations[currentLang];
+    
+    constSelect.innerHTML = '<option value="" disabled selected>' + t.selectConstellationFilled + '</option>';
+    resultBox.style.display = 'none';
+
+    if (buybackData[selectedRegion]) {
+        constSelect.disabled = false;
+        for (let constellation in buybackData[selectedRegion]) {
+            let opt = document.createElement('option');
+            opt.value = constellation;
+            opt.innerHTML = constellation;
+            constSelect.appendChild(opt);
+        }
+    } else {
+        constSelect.disabled = true;
+    }
+}
+
+function displayBuyIndex() {
+    const regionSelect = document.getElementById('regionSelect').value;
+    const constSelect = document.getElementById('constellationSelect').value;
+    const resultBox = document.getElementById('resultBox');
+    const indexText = document.getElementById('buyIndexText');
+    const hubText = document.getElementById('hubText');
+    const stationText = document.getElementById('stationText');
+
+    if (buybackData[regionSelect] && buybackData[regionSelect][constSelect]) {
+        const entry = buybackData[regionSelect][constSelect];
+        indexText.innerText = entry.index;
+        hubText.innerText = entry.hub;
+        stationText.innerText = entry.station;
+        resultBox.style.display = 'block';
+    }
+}
+
+// Универсальная функция для открытия/закрытия любого блока
+function toggleInstruction(blockId, btnElement, labelText) {
+    const panel = document.getElementById(blockId);
+    const t = translations[currentLang];
+    const span = btnElement.querySelector('[data-i18n]');
+    
+    if (panel.style.maxHeight && panel.style.maxHeight !== "0px") {
+        panel.style.maxHeight = "0px";
+        panel.style.borderBottom = "none";
+        if (span) span.innerHTML = t[labelText === 'price' ? 'btnPrice' : 'btnSell'];
+    } else {
+        panel.style.maxHeight = panel.scrollHeight + "px";
+        panel.style.borderBottom = "1px solid #333333";
+        if (span) span.innerHTML = t.hide;
+    }
+}
+</script>
+
+</body>
+</html>
